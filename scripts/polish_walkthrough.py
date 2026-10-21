@@ -32,7 +32,7 @@ def main():
    except Exception:pass
   page.on('response',received)
  def about(page):
-  page.get_by_role('button',name='About',exact=True).click();expect(page.locator('.about h1')).to_have_text('About the Research')
+  page.get_by_role('button',name='About',exact=True).click();expect(page.locator('.about h1')).to_have_text('Overview')
   expect(page.get_by_test_id('stApp')).to_have_attribute('data-test-script-state','notRunning')
  with sync_playwright() as p:
   browser=p.chromium.launch(headless=True)
@@ -128,13 +128,15 @@ def main():
   expected=re.sub(r'[#*]','',ABOUT.read_text().split('**Email:**')[0])
   actual=page.locator('.about').evaluate('e=>{const n=e.cloneNode(true);n.querySelector(".contact-controls").remove();return [...n.children].map(x=>x.textContent).join(" ")}')
   assert ' '.join(actual.split())==' '.join(expected.split())
+  assert page.locator('.about h1,.about h2').all_text_contents()==['Overview','Demonstration','Author','Contact']
+  assert page.locator('.about').evaluate('e=>{for(const n of e.children){if(n.tagName==="H2"&&n.textContent==="Contact")break;if(n.querySelector("strong,b"))return false;}return true;}')
   assert '\u2014' not in actual
   assert secret not in page.locator('.review-root').text_content() and secret not in page.content()
   assert all(secret.encode() not in b for b in frames+responses)
   initial_counts=dict(websocket_frames=len(frames),http_bodies=len(responses))
   expect(page.locator('.copy-email')).to_have_count(0)
   assert not page.locator('a[href^="mailto:"]').count()
-  full_page(page,'about-full-before-reveal.png');top(page);page.screenshot(path=str(SHOTS/'about-opening-before-reveal.png'))
+  full_page(page,'about-full-before-reveal.png',allow_viewport_fit=True);top(page);page.screenshot(path=str(SHOTS/'about-opening-before-reveal.png'))
   page.locator('.reveal-email').focus();page.screenshot(path=str(SHOTS/'contact-before-reveal.png'));page.keyboard.press('Space')
   expect(page.locator('.contact-address')).to_have_text(secret)
   focused(page.locator('.copy-email'));page.keyboard.press('Enter');expect(page.locator('.contact-status')).to_have_text('Email copied')
@@ -150,7 +152,7 @@ def main():
   done('H09-H11','Exact About copy, initial HTTP/WebSocket/DOM without email; real Reveal/Copy/Hide; denied clipboard truthful; navigation and reload reset')
   # Fresh mobile session starts hidden, including all newly received payloads.
   for width in (390,320):
-   page.set_viewport_size({'width':width,'height':844});overflow(page);full_page(page,f'about-{width}-before-reveal.png')
+   page.set_viewport_size({'width':width,'height':844});overflow(page);full_page(page,f'about-{width}-before-reveal.png',allow_viewport_fit=True)
    page.locator('.reveal-email').focus();page.keyboard.press('Enter');expect(page.locator('.copy-email')).to_be_visible();overflow(page)
    page.screenshot(path=str(SHOTS/f'PRIVATE-contact-{width}-revealed.png'))
    page.locator('.hide-email').click();expect(page.locator('.reveal-email')).to_be_visible()

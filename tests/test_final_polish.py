@@ -86,6 +86,9 @@ def test_exact_about_copy_and_no_mailto():
         def handle_endtag(self,tag):
             if tag in ('p','h1','h2'):self.text.append(' ')
     parser=Text();html=review_app.about_markup();parser.feed(html)
+    assert '<h1>Overview</h1>' in html
+    assert '<strong>' not in html.split('<h2>Contact</h2>')[0]
+    assert all(f'<h2>{heading}</h2>' in html for heading in ('Demonstration','Author','Contact'))
     plain=re.sub(r'[#*]','',expected.split('**Email:**')[0])
     assert ' '.join(''.join(parser.text).split())==' '.join(plain.split())
     assert html.count('<a ')==2 and 'mailto:' not in html

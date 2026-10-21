@@ -5,7 +5,7 @@ from context_safety.ui.review_app import VIEWS, render_shell
 
 
 def main():
-    st.set_page_config(page_title='Context-Aware AI Safety', layout='wide', initial_sidebar_state='collapsed')
+    st.set_page_config(page_title='Context-Aware LLM Safety Classifier', layout='wide', initial_sidebar_state='collapsed')
     view=st.session_state.get('review_view','Demonstration')
     if view not in VIEWS:
         view='Demonstration'

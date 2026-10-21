@@ -20,8 +20,8 @@ BASELINE = ROOT / 'local-artifacts/v0.3.1-owner-review/preview.json'
 SOURCE = ROOT / 'local-artifacts/CYB-386-Direct-e34d5d6e-4fb4-4b2c-8129-91ca3837ee33/CYB-386-Direct-e34d5d6e-4fb4-4b2c-8129-91ca3837ee33.md'
 VIEWS = ('Demonstration', 'Research', 'About')
 
-ABOUT_PIN = '891b20f6aa78bf6f75831e8b48ef6bbdb7bffa564caab4f8e638df00159c9976'
-ABOUT = DISPLAY / 'about.md'
+ABOUT_PIN = '14e4cd9a456fc5efb3a258284b5a12d4470d45a22116924d4901de3d5669bbe1'
+ABOUT = ROOT / 'data/presentation/2026-10-21/about.md'
 
 
 def load_catalog():

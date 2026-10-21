@@ -38,7 +38,9 @@ def test_research_is_reading_list_and_never_calls_evaluator(monkeypatch):
 
 def test_about_uses_approved_heading_and_keeps_references_on_research():
     about = about_markup()
-    assert '<h1>About the Research</h1>' in about
+    assert '<h1>Overview</h1>' in about
+    assert [part.split('</h2>')[0] for part in about.split('<h2>')[1:]] == ['Demonstration', 'Author', 'Contact']
+    assert '<strong>' not in about.split('<h2>Contact</h2>')[0]
     assert 'https://github.com/ryandej' in about
     assert 'Research Foundation' not in about
     assert all(url not in about for _,url,_ in REFERENCES)

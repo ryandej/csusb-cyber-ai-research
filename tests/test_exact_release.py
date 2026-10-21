@@ -12,6 +12,35 @@ from context_safety.ui.outcome_markup import browser_case
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = json.loads((ROOT / 'tests/original-render-fingerprints.json').read_text())
+PRESENTATION_SUBSTITUTIONS = {
+    'app.py': [(b"page_title='Context-Aware AI Safety'",
+                b"page_title='Context-Aware LLM Safety Classifier'")],
+    'src/context_safety/ui/review.js': [
+        (b'<h1>Context-Aware AI Safety</h1>', b'<h1>Context-Aware LLM Safety Classifier</h1>'),
+        (b'<p>Cybersecurity assistance, risk, and utility</p>',
+         b'<p>Reducing unnecessary refusals while maintaining safeguards against harmful assistance.</p>'),
+    ],
+    'src/context_safety/ui/review_app.py': [
+        (b"ABOUT_PIN = '891b20f6aa78bf6f75831e8b48ef6bbdb7bffa564caab4f8e638df00159c9976'",
+         b"ABOUT_PIN = '14e4cd9a456fc5efb3a258284b5a12d4470d45a22116924d4901de3d5669bbe1'"),
+        (b"ABOUT = DISPLAY / 'about.md'", b"ABOUT = ROOT / 'data/presentation/2026-10-21/about.md'"),
+    ],
+}
+PROTECTED_FILES = dict(EXPECTED['unchanged_files'], **{
+    'src/context_safety/ui/review_app.py': 'cf5b840dc0e3e4ff3370c0b0fb7ac496110dfd78c32cfa3db158fbd40ce41fdb',
+})
+HISTORICAL_ABOUT_PIN = '891b20f6aa78bf6f75831e8b48ef6bbdb7bffa564caab4f8e638df00159c9976'
+CURRENT_ABOUT_PIN = '14e4cd9a456fc5efb3a258284b5a12d4470d45a22116924d4901de3d5669bbe1'
+CURRENT_ABOUT_HTML_PIN = '0d43ed9e5cf083f5f23e3ab474f21d8fca3569e60a30e82ebfff2b0773b5c0fe'
+
+
+def original_bytes_after_approved_presentation(name, body):
+    """Reverse only exact owner-authorized header and About path/pin changes."""
+    for old, new in PRESENTATION_SUBSTITUTIONS.get(name, []):
+        assert body.count(new) == 1, 'Missing or duplicated approved literal'
+        assert old not in body, 'Old literal remains'
+        body = body.replace(new, old, 1)
+    return body
 
 
 def digest(value):
@@ -22,14 +51,66 @@ def test_identical_original_content_and_rendering():
     preview = review_app.load_catalog()
     assert digest(json.dumps(preview.model_dump(mode='json'), sort_keys=True).encode()) == EXPECTED['schema_dump']
     assert digest(json.dumps([browser_case(c) for c in preview.cases], sort_keys=True).encode()) == EXPECTED['browser_cases']
-    assert digest(review_app.about_markup().encode()) == EXPECTED['about_html']
     assert digest(review_app.research_markup().encode()) == EXPECTED['research_html']
-    assert digest(review_app.ABOUT.read_bytes()) == review_app.ABOUT_PIN
 
 
-@pytest.mark.parametrize('name', EXPECTED['unchanged_files'])
+@pytest.mark.parametrize('name', PROTECTED_FILES)
 def test_original_ui_and_contract_bytes(name):
-    assert digest((ROOT / name).read_bytes()) == EXPECTED['unchanged_files'][name]
+    body = original_bytes_after_approved_presentation(name, (ROOT / name).read_bytes())
+    assert digest(body) == PROTECTED_FILES[name]
+
+
+@pytest.mark.parametrize('name', PRESENTATION_SUBSTITUTIONS)
+@pytest.mark.parametrize('attack', ['extra_code', 'changed_spacing', 'duplicate_literal', 'old_literal', 'wrong_literal'])
+def test_presentation_allowance_rejects_other_file_changes(name, attack):
+    body = (ROOT / name).read_bytes()
+    old, new = PRESENTATION_SUBSTITUTIONS[name][0]
+    if attack == 'extra_code':
+        body += b'\nunauthorized_change()\n'
+    elif attack == 'changed_spacing':
+        body = b' ' + body
+    elif attack == 'duplicate_literal':
+        body += new
+    elif attack == 'old_literal':
+        body = body.replace(new, old, 1)
+    else:
+        body = body.replace(new, new[:-1] + b'UNAPPROVED' + new[-1:], 1)
+    with pytest.raises(AssertionError):
+        normalized = original_bytes_after_approved_presentation(name, body)
+        assert digest(normalized) == PROTECTED_FILES[name]
+
+
+def test_current_and_historical_about_integrity_and_unchanged_contact(monkeypatch):
+    historical = ROOT / 'data/approved/v0.4.1/about.md'
+    assert digest(historical.read_bytes()) == HISTORICAL_ABOUT_PIN
+    assert review_app.ABOUT == ROOT / 'data/presentation/2026-10-21/about.md'
+    assert digest(review_app.ABOUT.read_bytes()) == review_app.ABOUT_PIN == CURRENT_ABOUT_PIN
+    current_html = review_app.about_markup()
+    assert digest(current_html.encode()) == CURRENT_ABOUT_HTML_PIN
+    assert review_app.ABOUT.read_bytes().split(b'## Contact\n', 1)[1] == historical.read_bytes().split(b'## Contact\n', 1)[1]
+    with monkeypatch.context() as m:
+        m.setattr(review_app, 'ABOUT', historical)
+        m.setattr(review_app, 'ABOUT_PIN', HISTORICAL_ABOUT_PIN)
+        original_html = review_app.about_markup()
+        assert digest(original_html.encode()) == EXPECTED['about_html']
+    assert current_html.split('<h2>Contact</h2>', 1)[1] == original_html.split('<h2>Contact</h2>', 1)[1]
+
+
+@pytest.mark.parametrize('replacement', ['historical', 'whitespace', 'changed_copy'])
+def test_current_about_rejects_old_or_resealed_content(tmp_path, monkeypatch, replacement):
+    original = review_app.ABOUT.read_bytes()
+    if replacement == 'historical':
+        body = (ROOT / 'data/approved/v0.4.1/about.md').read_bytes()
+    elif replacement == 'whitespace':
+        body = original + b'\n'
+    else:
+        body = original.replace(b'# Overview', b'# Replacement', 1)
+    path = tmp_path / 'about.md'
+    path.write_bytes(body)
+    path.with_suffix('.manifest.json').write_text(json.dumps({'sha256': digest(body)}))
+    monkeypatch.setattr(review_app, 'ABOUT', path)
+    assert 'unavailable' in review_app.about_markup()
+    assert 'LOG(N)' not in review_app.about_markup()
 
 
 def test_packaged_loader_needs_no_private_archives(monkeypatch):

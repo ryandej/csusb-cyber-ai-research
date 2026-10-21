@@ -38,14 +38,20 @@ def focused(locator):
  raise AssertionError('Navigation did not focus the selected passage/target')
 
 
-def full_page(page,name):
+def full_page(page,name,allow_viewport_fit=False):
  # Streamlit uses a fixed scroll container. Expand only that browser shell for
  # a true full-content screenshot; dashboard CSS/content/width are untouched.
  top(page)
  style=page.add_style_tag(content='''html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"],[data-testid="stMain"] {position:relative!important;height:auto!important;max-height:none!important;overflow:visible!important;}''')
  try:
   page.screenshot(path=str(SHOTS/name),full_page=True)
-  assert page.evaluate('document.documentElement.scrollHeight>innerHeight')
+  if allow_viewport_fit:
+   # The revised Overview may fit the desktop viewport; still require its
+   # complete content to lie within the full-page capture bounds.
+   bounds=page.locator('.about').bounding_box()
+   assert bounds and bounds['y']+bounds['height']<=page.evaluate('document.documentElement.scrollHeight')+1
+  else:
+   assert page.evaluate('document.documentElement.scrollHeight>innerHeight')
  finally:style.evaluate('e=>e.remove()')
  top(page)
 
@@ -69,8 +75,8 @@ def main():
   expect(page.locator('.identity strong')).to_have_text('RYAN DEJONG')
   expect(page.locator('.identity a')).to_have_attribute('href','https://github.com/ryandej')
   assert page.locator('.case-rail,.case-heading,.project-title,.comparison,.key-panel').count()==0
-  assert page.locator('.project-heading h1').text_content()=='Context-Aware AI Safety'
-  assert page.locator('.project-heading p').text_content()=='Cybersecurity assistance, risk, and utility'
+  assert page.locator('.project-heading h1').text_content()=='Context-Aware LLM Safety Classifier'
+  assert page.locator('.project-heading p').text_content()=='Reducing unnecessary refusals while maintaining safeguards against harmful assistance.'
   done('A1/A15: exact header and hierarchy; no legacy rail, duplicate heading, comparison or evaluator')
   for case in preview.cases:
    choice=page.locator(f'.case-choice[data-case="{case.id}"]')
@@ -214,13 +220,13 @@ def main():
   page.locator('.view-observed').focus();expect(page.locator('.copy-fallback')).to_have_count(0)
   page.evaluate("Object.getPrototypeOf(navigator.clipboard).writeText=window.savedWrite;delete window.savedWrite")
   done('Exact selectable fallback when clipboard permission is denied')
-  # Reference and About tabs are unchanged, with no hidden evaluator controls.
+  # Research is unchanged; About uses the owner-approved presentation revision.
   page.get_by_role('button',name='Research',exact=True).click()
   expect(page.locator('.research-foundation h1')).to_have_text('Research Foundation')
   assert page.locator('.research-foundation a').evaluate_all('es=>es.map(e=>e.href)')==[u for _,u,_ in REFERENCES]
   assert page.locator('.research-foundation p').count()==7
   top(page);page.screenshot(path=str(SHOTS/'research.png'))
-  page.get_by_role('button',name='About',exact=True).click();expect(page.locator('.about h1')).to_have_text('About the Research')
+  page.get_by_role('button',name='About',exact=True).click();expect(page.locator('.about h1')).to_have_text('Overview')
   assert page.locator('.about a').count()==2
   top(page);page.screenshot(path=str(SHOTS/'about.png'))
   assert not page.get_by_role('combobox').count() and not page.get_by_test_id('stFileUploader').count()
