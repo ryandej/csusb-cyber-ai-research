@@ -19,6 +19,8 @@ The existing deployment uses the live URL above. Preserve the repository, `main`
 
 The October 21 presentation release updates the project header and displayed About copy while preserving the case content and application behavior. After updates to `main`, verify the hosted title, subtitle, Overview page, and unchanged case content. Keep `app.py` as the single public entrypoint.
 
+The accepted configuration sets `server.fileWatcherType = "none"`. After publishing Python changes, [reboot the app from Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app/reboot-your-app) to load the updated Python code. A file-read JavaScript header can update while the running process still serves older Python code, so check the browser title and About copy as well as the visible dashboard heading. Reboot requires signing in to the app's Streamlit workspace.
+
 See the official [deployment instructions](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency documentation](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies).
 
 ## Optional email contact
