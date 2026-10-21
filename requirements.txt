@@ -1,0 +1,3 @@
+# Python 3.12; install the original app package and its pinned dependencies.
+-c requirements-runtime.lock
+-e .

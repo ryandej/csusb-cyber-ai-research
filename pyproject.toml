@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==84.2.0", "wheel==0.48.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "csusb-context-safety"
+version = "0.1.0"
+description = "Offline illustrative contextual safety evaluation foundation"
+requires-python = ">=3.10"
+dependencies = ["pydantic==2.14.1", "streamlit==1.65.0"]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1", "jsonschema==4.26.0"]
+browser = ["playwright==1.64.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"

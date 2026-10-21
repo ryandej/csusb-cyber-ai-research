@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Private research, deployment secrets, and local verification outputs
+local-artifacts/
+.cache/
+.streamlit/secrets.toml
+.env*
+.venv/
+build/
+dist/

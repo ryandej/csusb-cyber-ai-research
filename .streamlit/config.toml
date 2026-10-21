@@ -1,0 +1,19 @@
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+headless = true
+enableStaticServing = false
+maxUploadSize = 1
+fileWatcherType = "none"
+
+[theme]
+base = "dark"
+primaryColor = "#67d6c3"
+backgroundColor = "#101318"
+secondaryBackgroundColor = "#1b2330"
+textColor = "#edf2f7"
+font = "sans serif"
